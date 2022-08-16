@@ -1,21 +1,18 @@
-import json
 
 import requests
 import csv
 import time
 import urllib.parse
-from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 
 
-def scrapeCD(ID):
+def ScrapeCD(ID):
     CD_url_start = 'https://www.cdkeys.com/?q='
     CD_url_end = '&platforms=Steam'
     sub1 = "discount_final_price\">"
     sub2 = "</div></div></div>"
     CDPrice = 0.0
-    SteamPrice = 0
     WishlistAvailable = 1
     Titles = ['Name', 'Review Summary', 'Review Score', '# of Reviews',
               'Release Date', 'Type', 'Price']
@@ -27,7 +24,7 @@ def scrapeCD(ID):
 
     print("\nWould you like results more or less accurate?\n"
           "Less accurate results may include games that CDKeys does not have,\n"
-          "whereas more accurate will use the official Steam price if the game is not found.\n")
+          "whereas more accurate will use the official Steam price if the exact game is not found.\n")
     accuracy = input("Type 0 for less accurate and 1 for more accurate: ")
 
     while (len(accuracy) != 1 or not accuracy.isdigit()) and (accuracy != 0 or accuracy != 1):
@@ -102,7 +99,7 @@ def scrapeCD(ID):
 
                     # add Steam data to list
                     if not json_response.get(game).get('is_free_game'):
-                        # if exact match was not found, use Steam result (more accurate)\
+                        # if exact match was not found, use Steam result (more accurate)
                         if exact_name.text == \
                                 json_response.get(game).get('name').upper().replace('™', '').replace('®', '') + " PC"\
                                 and exact_name.text != 'DNE':
@@ -149,5 +146,5 @@ def scrapeCD(ID):
         driver.close()
         data_file.close()
 
-        print("Data from CDKeys was placed in the CDKeys_Wishlist.csv file"
+        print("\nData from CDKeys was entered in the CDKeys_Wishlist.csv file"
               "\nYour total from CDKeys is: $" + str("{:.2f}".format(CDPrice)))

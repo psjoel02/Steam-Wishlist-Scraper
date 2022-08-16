@@ -1,5 +1,5 @@
-from ScrapeCD import scrapeCD
-
+from ScrapeCD import ScrapeCD
+from SteamData import SteamData
 
 def getID():
     print("Welcome to the Steam Wishlist Calculator.\n\nThis program uses "
@@ -38,7 +38,7 @@ def main():
     # get user's choice of official or unofficial store
     # A Chrome browser is required to use this application
     # add Eneba and Green Man Gaming options
-    if isOfficial == 1:
+    if isOfficial == '1':
         Official_Store = input("\nWould you like to get game data from Fanatical, Green Man Gaming, or Steam?"
                                "\n\nType 0 for Fanatical, 1 for Green Man Gaming, and 2 for Steam: ")
 
@@ -46,12 +46,12 @@ def main():
                 (Official_Store != 0 or Official_Store != 1 or Official_Store != 2):
             Official_Store = input("\nYour choice must be a 0 or 1 digit. Please try again: ")
 
-        if Official_Store == 1:
-            print("Green Man Gaming")
-        elif Official_Store == 2:
+        if Official_Store == '0':
             print("Fanatical")
+        elif Official_Store == '1':
+            print("Green Man Gaming")
         else:
-            print("Steam")
+            SteamData(steamID)
         # if user selected official(1), scrape Fanatical or Green Man Gaming for Data
 
     else:
@@ -64,10 +64,10 @@ def main():
                 (Unofficial_Store != 0 or Unofficial_Store != 1):
             Unofficial_Store = input("\nYour choice must be a 0 or 1 digit. Please try again: ")
 
-        if Unofficial_Store == 1:
+        if Unofficial_Store == '1':
             print("Eneba here")
         else:
-            scrapeCD(steamID)
+            ScrapeCD(steamID)
         # if user selected unofficial(0), scrape CDKeys or Eneba for data
         # CDKeys has a smaller offering of games than Eneba, but it is safer...
 
