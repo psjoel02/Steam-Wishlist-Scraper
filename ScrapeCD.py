@@ -10,13 +10,13 @@ from selenium.common.exceptions import NoSuchElementException
 
 
 def scrapeCD(ID):
-
     CD_url_start = 'https://www.cdkeys.com/?q='
     CD_url_end = '&platforms=Steam'
     sub1 = "discount_final_price\">"
     sub2 = "</div></div></div>"
-    CDPrice = 0
+    CDPrice = 0.0
     SteamPrice = 0
+    WishlistAvailable = 1
     Titles = ['Name', 'Review Summary', 'Review Score', '# of Reviews',
               'Release Date', 'Type', 'Price']
 
@@ -40,67 +40,44 @@ def scrapeCD(ID):
 
     for game in json_response:
 
-        game_parsed = urllib.parse.quote(json_response.get(game).get('name').replace('™', '') + " PC")
-        URL = CD_url_start + game_parsed + CD_url_end
+        try:
+            game_parsed = urllib.parse.quote(json_response.get(game).get('name').replace('™', '') + " PC")
+            URL = CD_url_start + game_parsed + CD_url_end
+            driver.get(URL)
+        except AttributeError:
+            print("Wishlist data could not be found. Double check that your wishlist is public."
+                  "\nLink for Steam's wishlist support: "
+                  "https://help.steampowered.com/en/faqs/view/0CAD-3B4D-B874-A065#wl-whosee")
+            WishlistAvailable = 0
+
         # convert Steam name into % URL format for CDKeys
-        driver.get(URL)
         time.sleep(1)
-        # result = driver.find_element("xpath", "//h3[contains(@itemprop,'name')]")
+        try:
+            exact_name = driver.find_element("xpath", "//h3[contains(@itemprop,'name')]")
+        except NoSuchElementException:
+            exact_name = 'DNE'
         try:
             result = driver.find_element("xpath", "//div[contains(@class,'price-wrapper')]")
             # if price-wrapper element was found (any result exists)
-            if result is not None:
+            if result is not None and WishlistAvailable == 1:
                 # if there is a result on CDKeys for the game
                 prices = result.text.splitlines()
                 # double check if there is a sale price for the game
-                if len(prices) > 0:
-                    # print("Game: " + json_response.get(game).get('name') +
-                    # " Sale Price: " + prices[0] + " Reg Price: " + prices[1])
-                    list = [json_response.get(game).get('name').replace('™', ''), json_response.get(game).get('review_desc'),
+                if accuracy == '0':
+                    # if user selected lower accuracy (if result on CDKeys exists)
+                    list = [json_response.get(game).get('name').replace('™', '').replace('®', ''),
+                            json_response.get(game).get('review_desc'),
                             json_response.get(game).get('reviews_percent'),
                             json_response.get(game).get('reviews_total'), json_response.get(game).get('release_string'),
                             json_response.get(game).get('type')]
 
                     # add Steam data to list
-
-                    if not json_response.get(game).get('is_free_game'):
-                        if accuracy == '0':
-                            list.append(prices[0])
-                            CDPrice += int(float(prices[0].replace("$", '')))
-                            # if exact match was not found use the CDKeys top result (less accurate)
-                        else:
-                            try:
-                                print("hello: " + accuracy)
-                                # if exact match was not found, use Steam result (more accurate)
-                                price = (str(json_response.get(game).get('subs')[0]))
-                                idx1 = price.index(sub1)
-                                idx2 = price.index(sub2)
-                                res = '$'
-                                for idx in range(idx1 + len(sub1) + 1, idx2):
-                                    res = res + price[idx]
-                                list.append(res)
-                                CDPrice += int(float(res.replace("$", '')))
-                            except IndexError:
-                                list.append("N/A")
-                    else:
-                        # if it is a free game, use that result
-                        list.append('$0.00')
-                    print(list)
-                    # print results for testing, replace with below
-                    csv_writer.writerow(list)
-                    # req = requests.get(URL)
-                else:
-                    # if price-wrapper for game has not been found, use Steam values
-                    print("Price-wrapper not found")
-                    list = [json_response.get(game).get('name').replace('™', ''), json_response.get(game).get('review_desc'),
-                            json_response.get(game).get('reviews_percent'),
-                            json_response.get(game).get('reviews_total'), json_response.get(game).get('release_string'),
-                            json_response.get(game).get('type')]
-
-                    # add Steam data to list
-
                     if not json_response.get(game).get('is_free_game'):
                         try:
+                            list.append(prices[0])
+                            CDPrice += float(prices[0].replace("$", ''))
+                        except IndexError:
+                            # if exact match was not found, use Steam result (more accurate)
                             price = (str(json_response.get(game).get('subs')[0]))
                             idx1 = price.index(sub1)
                             idx2 = price.index(sub2)
@@ -108,13 +85,51 @@ def scrapeCD(ID):
                             for idx in range(idx1 + len(sub1) + 1, idx2):
                                 res = res + price[idx]
                             list.append(res)
-                            CDPrice += int(float(res.replace("$", '')))
-                        except IndexError:
-                            list.append("N/A")
+                            CDPrice += float(res.replace("$", ''))
                     else:
                         # if it is a free game, use that result
                         list.append('$0.00')
-                    print(list)
+                    # print results for testing, replace with below
+                    csv_writer.writerow(list)
+                    # req = requests.get(URL)
+                else:
+                    # if user selected higher accuracy (only exact matches on CDKeys)
+                    list = [json_response.get(game).get('name').replace('™', '').replace('®', ''),
+                            json_response.get(game).get('review_desc'),
+                            json_response.get(game).get('reviews_percent'),
+                            json_response.get(game).get('reviews_total'), json_response.get(game).get('release_string'),
+                            json_response.get(game).get('type')]
+
+                    # add Steam data to list
+                    if not json_response.get(game).get('is_free_game'):
+                        # if exact match was not found, use Steam result (more accurate)\
+                        if exact_name.text == \
+                                json_response.get(game).get('name').upper().replace('™', '').replace('®', '') + " PC"\
+                                and exact_name.text != 'DNE':
+                            try:
+                                list.append(prices[0])
+                                CDPrice += float(prices[0].replace("$", ''))
+                                # initially try CDKeys results
+                            except IndexError:
+                                list.append("N/A")
+                        else:
+                            try:
+                                # if it fails use Steam results
+                                price = (str(json_response.get(game).get('subs')[0]))
+                                idx1 = price.index(sub1)
+                                idx2 = price.index(sub2)
+                                res = '$'
+                                for idx in range(idx1 + len(sub1) + 1, idx2):
+                                    res = res + price[idx]
+                                list.append(res)
+                                CDPrice += float(res.replace("$", ''))
+                            except IndexError:
+                                # if no steam price is available it has not been released
+                                list.append("N/A")
+                    else:
+                        # if it is a free game, use that result
+                        list.append('$0.00')
+                    # print(list)
                     # print results for testing, replace with below
                     csv_writer.writerow(list)
                     # req = requests.get(URL)
@@ -124,7 +139,15 @@ def scrapeCD(ID):
 
         except NoSuchElementException:
             # if Selenium fails, notify user that data was not found
-            print("Data not found for: " + json_response.get(game).get('name'))
+            if WishlistAvailable == 1:
+                print("Data not found for: " + json_response.get(game).get('name'))
 
-    driver.close()
-    data_file.close()
+    if WishlistAvailable == 1:
+        TotalList = ['Total:', '', '', '', '', '', '$' + str("{:.2f}".format(CDPrice))]
+        csv_writer.writerow('')
+        csv_writer.writerow(TotalList)
+        driver.close()
+        data_file.close()
+
+        print("Data from CDKeys was placed in the CDKeys_Wishlist.csv file"
+              "\nYour total from CDKeys is: $" + str("{:.2f}".format(CDPrice)))
