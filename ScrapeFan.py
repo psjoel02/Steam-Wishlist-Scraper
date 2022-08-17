@@ -1,4 +1,3 @@
-
 import requests
 import csv
 import urllib.parse
@@ -46,7 +45,8 @@ def ScrapeFan(ID):
 
         try:
             game_parsed = \
-                urllib.parse.quote(json_response.get(game).get('name').replace('™', '').replace('®', ''))
+                urllib.parse.quote(
+                    json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&'))
             URL = Fan_url_start + game_parsed + Fan_url_end
             driver.get(URL)
             driver.implicitly_wait(2)
@@ -56,7 +56,7 @@ def ScrapeFan(ID):
                   "https://help.steampowered.com/en/faqs/view/0CAD-3B4D-B874-A065#wl-whosee")
             WishlistAvailable = 0
 
-        # convert Steam name into % URL format for CDKeys
+        # convert Steam name into % URL format for Fanatical
 
         try:
             exact_name = driver.find_elements("xpath", "//a[contains(@class,'faux-block-link__overlay-link')]")
@@ -65,6 +65,7 @@ def ScrapeFan(ID):
                 if i == 63:
                     exact_name = x.get_attribute('href')
                     exact_name = exact_name.rsplit('/', 1)[1].replace('-', ' ').upper()
+                    print(exact_name)
                     game_name = ''.join(filter(chars.__contains__, json_response.get(game).get('name').upper()))
                     # match characters between Steam listing and Fanatical top result URL
                     break
@@ -85,13 +86,14 @@ def ScrapeFan(ID):
                 # if there is a result on Fanatical for the game
                 # double check if there is a sale price for the game
                 if accuracy == '0':
-                    # if user selected lower accuracy (if result on CDKeys exists)
-                    gameList = [json_response.get(game).get('name').replace('™', '').replace('®', ''),
-                                json_response.get(game).get('review_desc'),
-                                json_response.get(game).get('reviews_percent'),
-                                json_response.get(game).get('reviews_total'),
-                                json_response.get(game).get('release_string'),
-                                json_response.get(game).get('type')]
+                    # if user selected lower accuracy (if result on Fanatical exists)
+                    gameList = [
+                        json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&'),
+                        json_response.get(game).get('review_desc'),
+                        json_response.get(game).get('reviews_percent'),
+                        json_response.get(game).get('reviews_total'),
+                        json_response.get(game).get('release_string'),
+                        json_response.get(game).get('type')]
 
                     # add Steam data to list
                     if not json_response.get(game).get('is_free_game'):
@@ -119,13 +121,14 @@ def ScrapeFan(ID):
                     csv_writer.writerow(gameList)
                     # req = requests.get(URL)
                 else:
-                    # if user selected higher accuracy (only exact matches on CDKeys)
-                    gameList = [json_response.get(game).get('name').replace('™', '').replace('®', ''),
-                                json_response.get(game).get('review_desc'),
-                                json_response.get(game).get('reviews_percent'),
-                                json_response.get(game).get('reviews_total'),
-                                json_response.get(game).get('release_string'),
-                                json_response.get(game).get('type')]
+                    # if user selected higher accuracy (only exact matches on Fanatical)
+                    gameList = [
+                        json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&'),
+                        json_response.get(game).get('review_desc'),
+                        json_response.get(game).get('reviews_percent'),
+                        json_response.get(game).get('reviews_total'),
+                        json_response.get(game).get('release_string'),
+                        json_response.get(game).get('type')]
 
                     # add Steam data to list
                     if not json_response.get(game).get('is_free_game'):
@@ -135,7 +138,7 @@ def ScrapeFan(ID):
                                 try:
                                     gameList.append(prices)
                                     FanPrice += float(prices.replace("$", ''))
-                                    # initially try CDKeys results
+                                    # initially try Fanatical results
                                 except IndexError:
                                     gameList.append("N/A")
                             else:
@@ -197,4 +200,3 @@ def ScrapeFan(ID):
               "\nYour total from Fanatical is: $" + str("{:.2f}".format(FanPrice)))
 
     input("Press any key to exit...")
-

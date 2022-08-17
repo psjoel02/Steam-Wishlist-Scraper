@@ -1,14 +1,15 @@
 from ScrapeCD import ScrapeCD
+from ScrapeEneba import ScrapeEneba
 from ScrapeFan import ScrapeFan
 from SteamData import SteamData
 
 
 def getID():
-    print("Welcome to the Steam Wishlist Calculator.\n\nThis program uses "
+    print("Welcome to the Steam Key Wishlist Calculator.\n\nThis program uses "
           "Steam's API and Selenium to scrape for the lowest and safest prices\n"
           "on the games in your Steam wishlist. This program does not obtain any\n"
           "of your personal information, only the data that is public in your wishlist.\n"
-          "Therefore it requires your profile / wishlist data to be public.\n")
+          "Therefore it requires your profile / wishlist data to be set to public.\n")
     print("Please enter your Steam ID. It can be found using this link: "
           "https://www.businessinsider.com/how-to-find-steam-id")
     steamID = input("Steam ID: ")
@@ -67,7 +68,7 @@ def main():
             Unofficial_Store = input("\nYour choice must be a 0 or 1 digit. Please try again: ")
 
         if Unofficial_Store == '1':
-            print("Eneba here")
+            ScrapeEneba(steamID)
         else:
             ScrapeCD(steamID)
         # if user selected unofficial(0), scrape CDKeys or Eneba for data
