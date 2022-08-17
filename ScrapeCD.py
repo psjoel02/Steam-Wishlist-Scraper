@@ -2,8 +2,9 @@
 import requests
 import csv
 import urllib.parse
+import edgedriver_autoinstaller
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.edge.options import Options
 from selenium.common.exceptions import NoSuchElementException
 
 
@@ -30,7 +31,11 @@ def ScrapeCD(ID):
     while (len(accuracy) != 1 or not accuracy.isdigit()) and (accuracy != 0 or accuracy != 1):
         accuracy = input("\nYour choice must be a 0 or 1 digit. Please try again: ")
 
-    driver = webdriver.Chrome()
+    edgedriver_autoinstaller.install()
+
+    driver = webdriver.Edge()
+    driver.get("http://www.python.org")
+    assert "Python" in driver.title
     # use webdriver bundled with script
     response = requests.get('https://store.steampowered.com/wishlist/profiles/' + ID + '/wishlistdata')
     json_response = response.json()
@@ -156,4 +161,4 @@ def ScrapeCD(ID):
         print("\nData from CDKeys was entered in the CDKeys_Wishlist.csv file"
               "\nYour total from CDKeys is: $" + str("{:.2f}".format(CDPrice)))
 
-    input("Press Enter to continue...")
+    input("Press any key to exit...")

@@ -1,12 +1,10 @@
-import time
 
 import requests
 import csv
 import urllib.parse
-
-from bs4 import BeautifulSoup
+import edgedriver_autoinstaller
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.edge.options import Options
 from selenium.common.exceptions import NoSuchElementException
 
 
@@ -35,7 +33,11 @@ def ScrapeFan(ID):
     while (len(accuracy) != 1 or not accuracy.isdigit()) and (accuracy != 0 or accuracy != 1):
         accuracy = input("\nYour choice must be a 0 or 1 digit. Please try again: ")
 
-    driver = webdriver.Chrome()
+    edgedriver_autoinstaller.install()
+
+    driver = webdriver.Edge()
+    driver.get("http://www.python.org")
+    assert "Python" in driver.title
     # use webdriver bundled with script
     response = requests.get('https://store.steampowered.com/wishlist/profiles/' + ID + '/wishlistdata')
     json_response = response.json()
@@ -174,7 +176,10 @@ def ScrapeFan(ID):
                     # req = requests.get(URL)
             else:
                 # only used in extreme scenarios where no game at all is found in Fanatical's database
-                print("Game not found on Fanatical: " + json_response.get(game).get('name'))
+                try:
+                    print("Game not found on Fanatical: " + json_response.get(game).get('name'))
+                except AttributeError:
+                    print("Fanatical data not found")
 
         except NoSuchElementException:
             # if Selenium fails, notify user that data was not found
@@ -191,4 +196,5 @@ def ScrapeFan(ID):
         print("\nData from Fanatical was entered in the Fanatical_Wishlist.csv file"
               "\nYour total from Fanatical is: $" + str("{:.2f}".format(FanPrice)))
 
-    input("Press Enter to continue...")
+    input("Press any key to exit...")
+

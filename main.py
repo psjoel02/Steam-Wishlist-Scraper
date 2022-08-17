@@ -8,8 +8,7 @@ def getID():
           "Steam's API and Selenium to scrape for the lowest and safest prices\n"
           "on the games in your Steam wishlist. This program does not obtain any\n"
           "of your personal information, only the data that is public in your wishlist.\n"
-          "Therefore it requires your profile / wishlist data to be public,\n"
-          "and the Chrome browser. (> 60% Market Share)\n")
+          "Therefore it requires your profile / wishlist data to be public.\n")
     print("Please enter your Steam ID. It can be found using this link: "
           "https://www.businessinsider.com/how-to-find-steam-id")
     steamID = input("Steam ID: ")
