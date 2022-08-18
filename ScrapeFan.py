@@ -55,93 +55,108 @@ def ScrapeFan(ID):
                   "\nLink for Steam's wishlist support: "
                   "https://help.steampowered.com/en/faqs/view/0CAD-3B4D-B874-A065#wl-whosee")
             WishlistAvailable = 0
+            driver.close()
 
         # convert Steam name into % URL format for Fanatical
+        if WishlistAvailable == 1:
+            try:
+                exact_name = driver.find_elements("xpath", "//a[contains(@class,'faux-block-link__overlay-link')]")
+                i = 0
+                for x in exact_name:
+                    if i == 63:
+                        exact_name = x.get_attribute('href')
+                        exact_name = exact_name.rsplit('/', 1)[1].replace('-', ' ').upper()
+                        print(exact_name)
+                        game_name = ''.join(filter(chars.__contains__, json_response.get(game).get('name').upper()))
+                        # match characters between Steam listing and Fanatical top result URL
+                        break
+                    i += 1
+            except NoSuchElementException:
+                exact_name = 'DNE'
+            try:
+                result = driver.find_elements("xpath", "//span[contains(@class,'card-price')]")
+                prices = ''
+                for x in result:
+                    if "$" in x.text:
+                        prices = x.text
+                        break
+                # print("result: " + prices)
+                # print("res: " + result.get_attribute('textContent'))
+                # if card-price element was found (any result exists)
+                if result is not None and WishlistAvailable == 1:
+                    # if there is a result on Fanatical for the game
+                    # double check if there is a sale price for the game
+                    if accuracy == '0':
+                        # if user selected lower accuracy (if result on Fanatical exists)
+                        gameList = [
+                            json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&'),
+                            json_response.get(game).get('review_desc'),
+                            json_response.get(game).get('reviews_percent'),
+                            json_response.get(game).get('reviews_total'),
+                            json_response.get(game).get('release_string'),
+                            json_response.get(game).get('type')]
 
-        try:
-            exact_name = driver.find_elements("xpath", "//a[contains(@class,'faux-block-link__overlay-link')]")
-            i = 0
-            for x in exact_name:
-                if i == 63:
-                    exact_name = x.get_attribute('href')
-                    exact_name = exact_name.rsplit('/', 1)[1].replace('-', ' ').upper()
-                    print(exact_name)
-                    game_name = ''.join(filter(chars.__contains__, json_response.get(game).get('name').upper()))
-                    # match characters between Steam listing and Fanatical top result URL
-                    break
-                i += 1
-        except NoSuchElementException:
-            exact_name = 'DNE'
-        try:
-            result = driver.find_elements("xpath", "//span[contains(@class,'card-price')]")
-            prices = ''
-            for x in result:
-                if "$" in x.text:
-                    prices = x.text
-                    break
-            # print("result: " + prices)
-            # print("res: " + result.get_attribute('textContent'))
-            # if card-price element was found (any result exists)
-            if result is not None and WishlistAvailable == 1:
-                # if there is a result on Fanatical for the game
-                # double check if there is a sale price for the game
-                if accuracy == '0':
-                    # if user selected lower accuracy (if result on Fanatical exists)
-                    gameList = [
-                        json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&'),
-                        json_response.get(game).get('review_desc'),
-                        json_response.get(game).get('reviews_percent'),
-                        json_response.get(game).get('reviews_total'),
-                        json_response.get(game).get('release_string'),
-                        json_response.get(game).get('type')]
-
-                    # add Steam data to list
-                    if not json_response.get(game).get('is_free_game'):
-                        try:
-                            gameList.append(prices)
-                            FanPrice += float(prices.replace("$", ''))
-                        except ValueError:
+                        # add Steam data to list
+                        if not json_response.get(game).get('is_free_game'):
                             try:
-                                # if exact match was not found, use Steam result (more accurate)
-                                price = (str(json_response.get(game).get('subs')[0]))
-                                idx1 = price.index(sub1)
-                                idx2 = price.index(sub2)
-                                res = '$'
-                                for idx in range(idx1 + len(sub1) + 1, idx2):
-                                    res = res + price[idx]
-                                gameList.append(res)
-                                FanPrice += float(res.replace("$", ''))
-                            except IndexError:
-                                # if no steam price is available it has not been released
-                                gameList.append("N/A")
-                    else:
-                        # if it is a free game, use that result
-                        gameList.append('$0.00')
-                    # print results for testing, replace with below
-                    csv_writer.writerow(gameList)
-                    # req = requests.get(URL)
-                else:
-                    # if user selected higher accuracy (only exact matches on Fanatical)
-                    gameList = [
-                        json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&'),
-                        json_response.get(game).get('review_desc'),
-                        json_response.get(game).get('reviews_percent'),
-                        json_response.get(game).get('reviews_total'),
-                        json_response.get(game).get('release_string'),
-                        json_response.get(game).get('type')]
-
-                    # add Steam data to list
-                    if not json_response.get(game).get('is_free_game'):
-                        # if exact match was not found, use Steam result (more accurate)
-                        try:
-                            if game_name in exact_name and exact_name != 'DNE':
+                                gameList.append(prices)
+                                FanPrice += float(prices.replace("$", ''))
+                            except ValueError:
                                 try:
-                                    gameList.append(prices)
-                                    FanPrice += float(prices.replace("$", ''))
-                                    # initially try Fanatical results
+                                    # if exact match was not found, use Steam result (more accurate)
+                                    price = (str(json_response.get(game).get('subs')[0]))
+                                    idx1 = price.index(sub1)
+                                    idx2 = price.index(sub2)
+                                    res = '$'
+                                    for idx in range(idx1 + len(sub1) + 1, idx2):
+                                        res = res + price[idx]
+                                    gameList.append(res)
+                                    FanPrice += float(res.replace("$", ''))
                                 except IndexError:
+                                    # if no steam price is available it has not been released
                                     gameList.append("N/A")
-                            else:
+                        else:
+                            # if it is a free game, use that result
+                            gameList.append('$0.00')
+                        # print results for testing, replace with below
+                        csv_writer.writerow(gameList)
+                        # req = requests.get(URL)
+                    else:
+                        # if user selected higher accuracy (only exact matches on Fanatical)
+                        gameList = [
+                            json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&'),
+                            json_response.get(game).get('review_desc'),
+                            json_response.get(game).get('reviews_percent'),
+                            json_response.get(game).get('reviews_total'),
+                            json_response.get(game).get('release_string'),
+                            json_response.get(game).get('type')]
+
+                        # add Steam data to list
+                        if not json_response.get(game).get('is_free_game'):
+                            # if exact match was not found, use Steam result (more accurate)
+                            try:
+                                if game_name in exact_name and exact_name != 'DNE':
+                                    try:
+                                        gameList.append(prices)
+                                        FanPrice += float(prices.replace("$", ''))
+                                        # initially try Fanatical results
+                                    except IndexError:
+                                        gameList.append("N/A")
+                                else:
+                                    try:
+                                        # if it fails use Steam results
+                                        price = (str(json_response.get(game).get('subs')[0]))
+                                        idx1 = price.index(sub1)
+                                        idx2 = price.index(sub2)
+                                        res = '$'
+                                        for idx in range(idx1 + len(sub1) + 1, idx2):
+                                            res = res + price[idx]
+                                        gameList.append(res)
+                                        FanPrice += float(res.replace("$", ''))
+                                    except IndexError:
+                                        # if no steam price is available it has not been released
+                                        gameList.append("N/A")
+                            except IndexError:
                                 try:
                                     # if it fails use Steam results
                                     price = (str(json_response.get(game).get('subs')[0]))
@@ -155,39 +170,27 @@ def ScrapeFan(ID):
                                 except IndexError:
                                     # if no steam price is available it has not been released
                                     gameList.append("N/A")
-                        except IndexError:
-                            try:
-                                # if it fails use Steam results
-                                price = (str(json_response.get(game).get('subs')[0]))
-                                idx1 = price.index(sub1)
-                                idx2 = price.index(sub2)
-                                res = '$'
-                                for idx in range(idx1 + len(sub1) + 1, idx2):
-                                    res = res + price[idx]
-                                gameList.append(res)
-                                FanPrice += float(res.replace("$", ''))
-                            except IndexError:
-                                # if no steam price is available it has not been released
-                                gameList.append("N/A")
 
-                    else:
-                        # if it is a free game, use that result
-                        gameList.append('$0.00')
-                    # print(list)
-                    # print results for testing, replace with below
-                    csv_writer.writerow(gameList)
-                    # req = requests.get(URL)
-            else:
-                # only used in extreme scenarios where no game at all is found in Fanatical's database
-                try:
-                    print("Game not found on Fanatical: " + json_response.get(game).get('name'))
-                except AttributeError:
-                    print("Fanatical data not found")
+                        else:
+                            # if it is a free game, use that result
+                            gameList.append('$0.00')
+                        # print(list)
+                        # print results for testing, replace with below
+                        csv_writer.writerow(gameList)
+                        # req = requests.get(URL)
+                else:
+                    # only used in extreme scenarios where no game at all is found in Fanatical's database
+                    try:
+                        print("Game not found on Fanatical: " + json_response.get(game).get('name'))
+                    except AttributeError:
+                        print("Fanatical data not found")
 
-        except NoSuchElementException:
-            # if Selenium fails, notify user that data was not found
-            if WishlistAvailable == 1:
-                print("Data not found for: " + json_response.get(game).get('name'))
+            except NoSuchElementException:
+                # if Selenium fails, notify user that data was not found
+                if WishlistAvailable == 1:
+                    print("Data not found for: " + json_response.get(game).get('name'))
+        else:
+            break
 
     if WishlistAvailable == 1:
         TotalList = ['Total:', '', '', '', '', '', '$' + str("{:.2f}".format(FanPrice))]
