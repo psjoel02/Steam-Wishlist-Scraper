@@ -1,3 +1,5 @@
+import time
+
 import requests
 import csv
 import urllib.parse
@@ -8,6 +10,7 @@ from selenium.common.exceptions import NoSuchElementException
 
 
 def ScrapeFan(ID):
+
     Fan_url_start = 'https://www.fanatical.com/en/search?search='
     Fan_url_end = '&drm=steam'
     sub1 = "discount_final_price\">"
@@ -33,23 +36,34 @@ def ScrapeFan(ID):
         accuracy = input("\nYour choice must be a 0 or 1 digit. Please try again: ")
 
     edgedriver_autoinstaller.install()
-
-    driver = webdriver.Edge()
+    Edge_options = Options()
+    Edge_options.add_argument("--window-size=1920,1080")
+    Edge_options.add_argument("--disable-extensions")
+    Edge_options.add_argument("--proxy-server='direct://'")
+    Edge_options.add_argument("--proxy-bypass-list=*")
+    Edge_options.add_argument("--start-maximized")
+    Edge_options.add_argument('--headless')
+    Edge_options.add_argument('--disable-gpu')
+    Edge_options.add_argument('--disable-dev-shm-usage')
+    Edge_options.add_argument('--no-sandbox')
+    Edge_options.add_argument('--ignore-certificate-errors')
+    Edge_options.add_argument('log-level=3')
+    driver = webdriver.Edge(options=Edge_options)
     driver.get("http://www.python.org")
     assert "Python" in driver.title
     # use webdriver bundled with script
+
     response = requests.get('https://store.steampowered.com/wishlist/profiles/' + ID + '/wishlistdata')
     json_response = response.json()
 
     for game in json_response:
-
         try:
             game_parsed = \
                 urllib.parse.quote(
                     json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&'))
             URL = Fan_url_start + game_parsed + Fan_url_end
             driver.get(URL)
-            driver.implicitly_wait(2)
+            time.sleep(3)
         except AttributeError:
             print("Wishlist data could not be found. Double check that your wishlist is public."
                   "\nLink for Steam's wishlist support: "
@@ -66,8 +80,7 @@ def ScrapeFan(ID):
                     if i == 63:
                         exact_name = x.get_attribute('href')
                         exact_name = exact_name.rsplit('/', 1)[1].replace('-', ' ').upper()
-                        print(exact_name)
-                        game_name = ''.join(filter(chars.__contains__, json_response.get(game).get('name').upper()))
+
                         # match characters between Steam listing and Fanatical top result URL
                         break
                     i += 1
@@ -80,8 +93,6 @@ def ScrapeFan(ID):
                     if "$" in x.text:
                         prices = x.text
                         break
-                # print("result: " + prices)
-                # print("res: " + result.get_attribute('textContent'))
                 # if card-price element was found (any result exists)
                 if result is not None and WishlistAvailable == 1:
                     # if there is a result on Fanatical for the game
@@ -135,7 +146,7 @@ def ScrapeFan(ID):
                         if not json_response.get(game).get('is_free_game'):
                             # if exact match was not found, use Steam result (more accurate)
                             try:
-                                if game_name in exact_name and exact_name != 'DNE':
+                                if json_response.get(game).get('name').upper() in exact_name and exact_name != 'DNE':
                                     try:
                                         gameList.append(prices)
                                         FanPrice += float(prices.replace("$", ''))
@@ -201,5 +212,3 @@ def ScrapeFan(ID):
 
         print("\nData from Fanatical was entered in the Fanatical_Wishlist.csv file"
               "\nYour total from Fanatical is: $" + str("{:.2f}".format(FanPrice)))
-
-    input("Press any key to exit...")

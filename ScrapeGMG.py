@@ -34,16 +34,27 @@ def ScrapeGMG(ID):
         accuracy = input("\nYour choice must be a 0 or 1 digit. Please try again: ")
 
     edgedriver_autoinstaller.install()
-
-    driver = webdriver.Edge()
+    Edge_options = Options()
+    Edge_options.add_argument("--window-size=1920,1080")
+    Edge_options.add_argument("--disable-extensions")
+    Edge_options.add_argument("--proxy-server='direct://'")
+    Edge_options.add_argument("--proxy-bypass-list=*")
+    Edge_options.add_argument("--start-maximized")
+    Edge_options.add_argument('--headless')
+    Edge_options.add_argument('--disable-gpu')
+    Edge_options.add_argument('--disable-dev-shm-usage')
+    Edge_options.add_argument('--no-sandbox')
+    Edge_options.add_argument('--ignore-certificate-errors')
+    Edge_options.add_argument('log-level=3')
+    driver = webdriver.Edge(options=Edge_options)
     driver.get("http://www.python.org")
     assert "Python" in driver.title
     # use webdriver bundled with script
+
     response = requests.get('https://store.steampowered.com/wishlist/profiles/' + ID + '/wishlistdata')
     json_response = response.json()
 
     for game in json_response:
-
         try:
             game_parsed = \
                 urllib.parse.quote(
@@ -67,95 +78,102 @@ def ScrapeGMG(ID):
                     exact_name = 'DNE'
                 else:
                     exact_name = driver.find_element("xpath", "//p[contains(@class,'prod-name')]")
-                    print(exact_name.text)
             except NoSuchElementException:
                 exact_name = 'DNE'
             except IndexError:
                 exact_name = 'DNE'
+            except ValueError:
+                exact_name = 'DNE'
             try:
-                result = driver.find_element("xpath", "//span[contains(@class,'current-price')]")
+                result = driver.find_element("xpath", "//div[contains(@class,'prices')]")
                 # if current-price element was found (any result exists)
                 if result is not None and WishlistAvailable == 1 and exact_name != 'DNE':
                     # if there is a result on Green Man Gaming for the game
-                    prices = result.text
-                    # double check if there is a sale price for the game
-                    if accuracy == '0':
-                        # if user selected lower accuracy (if result on Green Man Gaming exists)
-                        gameList = [
-                            json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&'),
-                            json_response.get(game).get('review_desc'),
-                            json_response.get(game).get('reviews_percent'),
-                            json_response.get(game).get('reviews_total'),
-                            json_response.get(game).get('release_string'),
-                            json_response.get(game).get('type')]
+                    try:
+                        prices = result.text
+                        prices = prices.split("\n", 2)[2].replace("$", '')
+                    except IndexError:
+                        # double check if there is a sale price for the game
+                        if accuracy == '0':
+                            # if user selected lower accuracy (if result on Green Man Gaming exists)
+                            gameList = [
+                                json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;',
+                                                                                                              '&'),
+                                json_response.get(game).get('review_desc'),
+                                json_response.get(game).get('reviews_percent'),
+                                json_response.get(game).get('reviews_total'),
+                                json_response.get(game).get('release_string'),
+                                json_response.get(game).get('type')]
 
-                        # add Steam data to list
-                        if not json_response.get(game).get('is_free_game'):
-                            try:
-                                gameList.append(prices)
-                                GMGPrice += float(prices.replace("$", ''))
-                            except IndexError:
-                                try:
-                                    # if exact match was not found, use Steam result (more accurate)
-                                    price = (str(json_response.get(game).get('subs')[0]))
-                                    idx1 = price.index(sub1)
-                                    idx2 = price.index(sub2)
-                                    res = '$'
-                                    for idx in range(idx1 + len(sub1) + 1, idx2):
-                                        res = res + price[idx]
-                                    gameList.append(res)
-                                    GMGPrice += float(res.replace("$", ''))
-                                except IndexError:
-                                    # if no steam price is available it has not been released
-                                    gameList.append("N/A")
-                        else:
-                            # if it is a free game, use that result
-                            gameList.append('$0.00')
-                        # print results for testing, replace with below
-                        csv_writer.writerow(gameList)
-                        # req = requests.get(URL)
-                    else:
-                        # if user selected higher accuracy (only exact matches on Green Man Gaming)
-                        gameList = [
-                            json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&'),
-                            json_response.get(game).get('review_desc'),
-                            json_response.get(game).get('reviews_percent'),
-                            json_response.get(game).get('reviews_total'),
-                            json_response.get(game).get('release_string'),
-                            json_response.get(game).get('type')]
-
-                        # add Steam data to list
-                        if not json_response.get(game).get('is_free_game'):
-                            # if exact substring was found in the most relevant result
-                            if json_response.get(game).get('name').upper().replace('™', '').replace('®', '').replace(
-                                    "&amp;", '&') in exact_name.text and exact_name.text != 'DNE':
+                            # add Steam data to list
+                            if not json_response.get(game).get('is_free_game'):
                                 try:
                                     gameList.append(prices)
                                     GMGPrice += float(prices.replace("$", ''))
-                                    # initially try Green Man Gaming results
                                 except IndexError:
-                                    gameList.append("N/A")
+                                    try:
+                                        # if exact match was not found, use Steam result (more accurate)
+                                        price = (str(json_response.get(game).get('subs')[0]))
+                                        idx1 = price.index(sub1)
+                                        idx2 = price.index(sub2)
+                                        res = '$'
+                                        for idx in range(idx1 + len(sub1) + 1, idx2):
+                                            res = res + price[idx]
+                                        gameList.append(res)
+                                        GMGPrice += float(res.replace("$", ''))
+                                    except IndexError:
+                                        # if no steam price is available it has not been released
+                                        gameList.append("N/A")
                             else:
-                                try:
-                                    # if it fails use Steam results
-                                    price = (str(json_response.get(game).get('subs')[0]))
-                                    idx1 = price.index(sub1)
-                                    idx2 = price.index(sub2)
-                                    res = '$'
-                                    for idx in range(idx1 + len(sub1) + 1, idx2):
-                                        res = res + price[idx]
-                                    gameList.append(res)
-                                    GMGPrice += float(res.replace("$", ''))
-                                except IndexError:
-                                    # if no steam price is available it has not been released
-                                    gameList.append("N/A")
+                                # if it is a free game, use that result
+                                gameList.append('$0.00')
+                            # print results for testing, replace with below
+                            csv_writer.writerow(gameList)
+                            # req = requests.get(URL)
                         else:
-                            # if it is a free game, use that result
-                            gameList.append('$0.00')
-                        # print(list)
-                        # print results for testing, replace with below
-                        csv_writer.writerow(gameList)
-                        # req = requests.get(URL)
+                            # if user selected higher accuracy (only exact matches on Green Man Gaming)
+                            gameList = [
+                                json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;',
+                                                                                                              '&'),
+                                json_response.get(game).get('review_desc'),
+                                json_response.get(game).get('reviews_percent'),
+                                json_response.get(game).get('reviews_total'),
+                                json_response.get(game).get('release_string'),
+                                json_response.get(game).get('type')]
+
+                            # add Steam data to list
+                            if not json_response.get(game).get('is_free_game'):
+                                # if exact substring was found in the most relevant result
+                                if json_response.get(game).get('name').upper().replace('™', '').replace('®',
+                                                                                                        '').replace(
+                                        "&amp;", '&') in exact_name.text and exact_name.text != 'DNE':
+                                    try:
+                                        gameList.append(prices)
+                                        GMGPrice += float(prices.replace("$", ''))
+                                        # initially try Green Man Gaming results
+                                    except IndexError:
+                                        gameList.append("N/A")
+                                else:
+                                    try:
+                                        # if it fails use Steam results
+                                        price = (str(json_response.get(game).get('subs')[0]))
+                                        idx1 = price.index(sub1)
+                                        idx2 = price.index(sub2)
+                                        res = '$'
+                                        for idx in range(idx1 + len(sub1) + 1, idx2):
+                                            res = res + price[idx]
+                                        gameList.append(res)
+                                        GMGPrice += float(res.replace("$", ''))
+                                    except IndexError:
+                                        # if no steam price is available it has not been released
+                                        gameList.append("N/A")
+                            else:
+                                # if it is a free game, use that result
+                                gameList.append('$0.00')
+                            # print(list)
+                            # print results for testing, replace with below
+                            csv_writer.writerow(gameList)
+                            # req = requests.get(URL)
                 else:
                     # if game has not been found in GreenManGaming
                     gameList = [
@@ -182,7 +200,26 @@ def ScrapeGMG(ID):
             except NoSuchElementException:
                 # if Selenium fails, notify user that data was not found
                 if WishlistAvailable == 1:
-                    print("Data not found for: " + json_response.get(game).get('name'))
+                    gameList = [
+                        json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&'),
+                        json_response.get(game).get('review_desc'),
+                        json_response.get(game).get('reviews_percent'),
+                        json_response.get(game).get('reviews_total'),
+                        json_response.get(game).get('release_string'),
+                        json_response.get(game).get('type')]
+                    try:
+                        # if it fails use Steam results
+                        price = (str(json_response.get(game).get('subs')[0]))
+                        idx1 = price.index(sub1)
+                        idx2 = price.index(sub2)
+                        res = '$'
+                        for idx in range(idx1 + len(sub1) + 1, idx2):
+                            res = res + price[idx]
+                        gameList.append(res)
+                        GMGPrice += float(res.replace("$", ''))
+                    except IndexError:
+                        # if no steam price is available it has not been released
+                        gameList.append("N/A")
         else:
             break
 
@@ -195,5 +232,3 @@ def ScrapeGMG(ID):
 
         print("\nData from Green Man Gaming was entered in the GreenManGaming_Wishlist.csv file"
               "\nYour total from Green Man Gaming is: $" + str("{:.2f}".format(GMGPrice)))
-
-    input("Press any key to exit...")

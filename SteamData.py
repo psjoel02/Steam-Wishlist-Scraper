@@ -73,4 +73,3 @@ def SteamData(ID):
         print("\nData from Steam was entered in the Steam_Wishlist.csv file"
               "\nYour total from Steam is: $" + str("{:.2f}".format(SteamPrice)))
 
-    input("Press any key to exit...")

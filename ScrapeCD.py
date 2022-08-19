@@ -1,3 +1,5 @@
+import time
+
 import requests
 import csv
 import urllib.parse
@@ -8,6 +10,7 @@ from selenium.common.exceptions import NoSuchElementException
 
 
 def ScrapeCD(ID):
+
     CD_url_start = 'https://www.cdkeys.com/?q='
     CD_url_end = '&platforms=Steam'
     sub1 = "discount_final_price\">"
@@ -31,23 +34,34 @@ def ScrapeCD(ID):
         accuracy = input("\nYour choice must be a 0 or 1 digit. Please try again: ")
 
     edgedriver_autoinstaller.install()
-
-    driver = webdriver.Edge()
+    Edge_options = Options()
+    Edge_options.add_argument("--window-size=1920,1080")
+    Edge_options.add_argument("--disable-extensions")
+    Edge_options.add_argument("--proxy-server='direct://'")
+    Edge_options.add_argument("--proxy-bypass-list=*")
+    Edge_options.add_argument("--start-maximized")
+    Edge_options.add_argument('--headless')
+    Edge_options.add_argument('--disable-gpu')
+    Edge_options.add_argument('--disable-dev-shm-usage')
+    Edge_options.add_argument('--no-sandbox')
+    Edge_options.add_argument('--ignore-certificate-errors')
+    Edge_options.add_argument('log-level=3')
+    driver = webdriver.Edge(options=Edge_options)
     driver.get("http://www.python.org")
     assert "Python" in driver.title
     # use webdriver bundled with script
+
     response = requests.get('https://store.steampowered.com/wishlist/profiles/' + ID + '/wishlistdata')
     json_response = response.json()
 
     for game in json_response:
-
         try:
             game_parsed = \
                 urllib.parse.quote(
                     json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&') + " PC")
             URL = CD_url_start + game_parsed + CD_url_end
             driver.get(URL)
-            driver.implicitly_wait(2)
+            time.sleep(3)
         except AttributeError:
             print("Wishlist data could not be found. Double check that your wishlist is public."
                   "\nLink for Steam's wishlist support: "
@@ -83,20 +97,57 @@ def ScrapeCD(ID):
                             try:
                                 gameList.append(prices[0])
                                 CDPrice += float(prices[0].replace("$", ''))
+                                # initially try CDKeys results
                             except IndexError:
                                 try:
-                                    # if exact match was not found, use Steam result (more accurate)
-                                    price = (str(json_response.get(game).get('subs')[0]))
-                                    idx1 = price.index(sub1)
-                                    idx2 = price.index(sub2)
-                                    res = '$'
-                                    for idx in range(idx1 + len(sub1) + 1, idx2):
-                                        res = res + price[idx]
-                                    gameList.append(res)
-                                    CDPrice += float(res.replace("$", ''))
-                                except IndexError:
-                                    # if no steam price is available it has not been released
-                                    gameList.append("N/A")
+                                    result = driver.find_elements("xpath", "//div[contains(@itemprop, 'offers')]")
+                                    # try second method to find game price
+                                    try:
+                                        CDPrice += float(result[1].text.split("\n", 1)[0].replace("$", ''))
+                                    except ValueError:
+                                        try:
+                                            # if exact match was not found in both tries, use Steam result (more
+                                            # accurate)
+                                            price = (str(json_response.get(game).get('subs')[0]))
+                                            idx1 = price.index(sub1)
+                                            idx2 = price.index(sub2)
+                                            res = '$'
+                                            for idx in range(idx1 + len(sub1) + 1, idx2):
+                                                res = res + price[idx]
+                                            gameList.append(res)
+                                            CDPrice += float(res.replace("$", ''))
+                                        except IndexError:
+                                            # if no steam price is available it has not been released
+                                            gameList.append("N/A")
+                                    except IndexError:
+                                        try:
+                                            # if exact match was not found in both tries, use Steam result (more
+                                            # accurate)
+                                            price = (str(json_response.get(game).get('subs')[0]))
+                                            idx1 = price.index(sub1)
+                                            idx2 = price.index(sub2)
+                                            res = '$'
+                                            for idx in range(idx1 + len(sub1) + 1, idx2):
+                                                res = res + price[idx]
+                                            gameList.append(res)
+                                            CDPrice += float(res.replace("$", ''))
+                                        except IndexError:
+                                            # if no steam price is available it has not been released
+                                            gameList.append("N/A")
+                                except NoSuchElementException:
+                                    try:
+                                        # if exact match was not found in both tries, use Steam result (more accurate)
+                                        price = (str(json_response.get(game).get('subs')[0]))
+                                        idx1 = price.index(sub1)
+                                        idx2 = price.index(sub2)
+                                        res = '$'
+                                        for idx in range(idx1 + len(sub1) + 1, idx2):
+                                            res = res + price[idx]
+                                        gameList.append(res)
+                                        CDPrice += float(res.replace("$", ''))
+                                    except IndexError:
+                                        # if no steam price is available it has not been released
+                                        gameList.append("N/A")
                         else:
                             # if it is a free game, use that result
                             gameList.append('$0.00')
@@ -123,7 +174,27 @@ def ScrapeCD(ID):
                                     CDPrice += float(prices[0].replace("$", ''))
                                     # initially try CDKeys results
                                 except IndexError:
-                                    gameList.append("N/A")
+                                    # try second method to find game price
+                                    try:
+                                        result = driver.find_elements("xpath", "//div[contains(@itemprop, 'offers')]")
+                                        try:
+                                            CDPrice += float(result[1].text.split("\n", 1)[0].replace("$", ''))
+                                        except IndexError:
+                                            gameList.append("N/A")
+                                    except NoSuchElementException:
+                                        try:
+                                            # if exact match was not found, use Steam result (more accurate)
+                                            price = (str(json_response.get(game).get('subs')[0]))
+                                            idx1 = price.index(sub1)
+                                            idx2 = price.index(sub2)
+                                            res = '$'
+                                            for idx in range(idx1 + len(sub1) + 1, idx2):
+                                                res = res + price[idx]
+                                            gameList.append(res)
+                                            CDPrice += float(res.replace("$", ''))
+                                        except IndexError:
+                                            # if no steam price is available it has not been released
+                                            gameList.append("N/A")
                             else:
                                 try:
                                     # if it fails use Steam results
@@ -165,5 +236,3 @@ def ScrapeCD(ID):
 
         print("\nData from CDKeys was entered in the CDKeys_Wishlist.csv file"
               "\nYour total from CDKeys is: $" + str("{:.2f}".format(CDPrice)))
-
-    input("Press any key to exit...")

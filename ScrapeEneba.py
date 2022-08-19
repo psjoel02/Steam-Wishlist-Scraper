@@ -1,3 +1,5 @@
+import time
+
 import requests
 import csv
 import urllib.parse
@@ -31,23 +33,34 @@ def ScrapeEneba(ID):
         accuracy = input("\nYour choice must be a 0 or 1 digit. Please try again: ")
 
     edgedriver_autoinstaller.install()
-
-    driver = webdriver.Edge()
+    Edge_options = Options()
+    Edge_options.add_argument("--window-size=1920,1080")
+    Edge_options.add_argument("--disable-extensions")
+    Edge_options.add_argument("--proxy-server='direct://'")
+    Edge_options.add_argument("--proxy-bypass-list=*")
+    Edge_options.add_argument("--start-maximized")
+    Edge_options.add_argument('--headless')
+    Edge_options.add_argument('--disable-gpu')
+    Edge_options.add_argument('--disable-dev-shm-usage')
+    Edge_options.add_argument('--no-sandbox')
+    Edge_options.add_argument('--ignore-certificate-errors')
+    Edge_options.add_argument('log-level=3')
+    driver = webdriver.Edge(options=Edge_options)
     driver.get("http://www.python.org")
     assert "Python" in driver.title
     # use webdriver bundled with script
+
     response = requests.get('https://store.steampowered.com/wishlist/profiles/' + ID + '/wishlistdata')
     json_response = response.json()
 
     for game in json_response:
-
         try:
             game_parsed = \
                 urllib.parse.quote(
                     json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&'))
             URL = Eneba_url_start + game_parsed
             driver.get(URL)
-            driver.implicitly_wait(2)
+            time.sleep(3)
             if firstVisit == 0:
                 driver.find_elements("xpath", "//button[contains(@class, 'pr0yIU')]")[1].click()
                 firstVisit += 1
@@ -121,7 +134,8 @@ def ScrapeEneba(ID):
                         # add Steam data to list
                         if not json_response.get(game).get('is_free_game'):
                             # if exact substring was found in the most relevant result
-                            if json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&') \
+                            if json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;',
+                                                                                                             '&') \
                                     in exact_name.text and exact_name.text != 'DNE':
                                 try:
                                     gameList.append(prices[0])
@@ -157,13 +171,13 @@ def ScrapeEneba(ID):
             except NoSuchElementException:
                 # if Selenium fails, notify user that data was not found
                 if WishlistAvailable == 1:
-                    # if user selected higher accuracy (only exact matches on Eneba)
-                    gameList = [json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&'),
-                                json_response.get(game).get('review_desc'),
-                                json_response.get(game).get('reviews_percent'),
-                                json_response.get(game).get('reviews_total'),
-                                json_response.get(game).get('release_string'),
-                                json_response.get(game).get('type')]
+                    gameList = [
+                        json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&'),
+                        json_response.get(game).get('review_desc'),
+                        json_response.get(game).get('reviews_percent'),
+                        json_response.get(game).get('reviews_total'),
+                        json_response.get(game).get('release_string'),
+                        json_response.get(game).get('type')]
 
                     # add Steam data to list
                     if not json_response.get(game).get('is_free_game'):
@@ -199,5 +213,3 @@ def ScrapeEneba(ID):
 
         print("\nData from Eneba was entered in the Eneba_Wishlist.csv file"
               "\nYour total from Eneba is: $" + str("{:.2f}".format(EnebaPrice)))
-
-    input("Press any key to exit...")
