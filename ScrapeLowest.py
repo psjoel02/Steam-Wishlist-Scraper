@@ -191,6 +191,7 @@ def ScrapeLowest():
     Edge_options.add_argument('--disable-dev-shm-usage')
     Edge_options.add_argument('--no-sandbox')
     Edge_options.add_argument('--ignore-certificate-errors')
+    Edge_options.add_experimental_option('excludeSwitches', ['enable-logging'])
     Edge_options.add_argument('log-level=3')
     driver = webdriver.Edge(options=Edge_options)
     driver.get("http://www.python.org")
@@ -198,7 +199,7 @@ def ScrapeLowest():
     # use webdriver bundled with script
 
     chars = set('abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789')
-    game_name = input("Please enter the name of your game here: ")
+    game_name = input("\nPlease enter the name of your game here: ")
     game_parsed = urllib.parse.quote(str(game_name).replace('™', '').replace('®', '').replace('&amp;', '&'))
 
     CDPrice = ScrapeCDKeys(CD_url_start, CD_url_end, CDPrice, game_name, driver, priceList)

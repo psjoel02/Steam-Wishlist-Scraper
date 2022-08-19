@@ -45,6 +45,7 @@ def ScrapeGMG(ID):
     Edge_options.add_argument('--disable-dev-shm-usage')
     Edge_options.add_argument('--no-sandbox')
     Edge_options.add_argument('--ignore-certificate-errors')
+    Edge_options.add_experimental_option('excludeSwitches', ['enable-logging'])
     Edge_options.add_argument('log-level=3')
     driver = webdriver.Edge(options=Edge_options)
     driver.get("http://www.python.org")
