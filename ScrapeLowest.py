@@ -107,6 +107,18 @@ def ScrapeGMG(GMG_url_start, GMG_url_end, game_parsed, driver, GMGPrice, priceLi
 
     try:
         result = driver.find_element("xpath", "//div[contains(@class,'prices')]")
+        try:
+            if result is not None:
+                prices = result.text
+                prices = prices.split("\n", 2)[2].replace("$", '')
+                if float(prices) > 0.0:
+                    GMGPrice += float(prices)
+                else:
+                    GMGPrice += -1
+            else:
+                GMGPrice += -1
+        except IndexError:
+            GMGPrice += float(result.text.replace("$", ''))
     except NoSuchElementException:
         try:
             if result is not None:
