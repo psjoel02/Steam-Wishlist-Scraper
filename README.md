@@ -17,10 +17,14 @@ The Steam Wishlist Scraper scrapes data from:
 - <a href="https://store.steampowered.com/">Steam</a> if you would like to know the total cost of your wishlist from the platform itself.
 
 ## Requirements
-- Python
-- Pip
+- Use Python System Interpreter and install required packages using Pip:
+- Time
+- Requests
+- CSV
+- URLLIB
 - Selenium
 - Edgedriver
+
 
 ## Usage
 - Download the repo .zip file.
