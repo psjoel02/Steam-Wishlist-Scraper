@@ -1,12 +1,9 @@
 import time
-
 import requests
 import csv
 import urllib.parse
-import edgedriver_autoinstaller
-from selenium import webdriver
-from selenium.webdriver.edge.options import Options
 from selenium.common.exceptions import NoSuchElementException
+from SteamData import getSteamPrice, useDriver, getGameList
 
 
 def ScrapeEneba(ID):
@@ -32,36 +29,19 @@ def ScrapeEneba(ID):
     while (len(accuracy) != 1 or not accuracy.isdigit()) and (accuracy != 0 or accuracy != 1):
         accuracy = input("\nYour choice must be a 0 or 1 digit. Please try again: ")
 
-    edgedriver_autoinstaller.install()
-    Edge_options = Options()
-    Edge_options.add_argument("--window-size=1920,1080")
-    Edge_options.add_argument("--disable-extensions")
-    Edge_options.add_argument("--proxy-server='direct://'")
-    Edge_options.add_argument("--proxy-bypass-list=*")
-    Edge_options.add_argument("--start-maximized")
-    Edge_options.add_argument('--headless')
-    Edge_options.add_argument('--disable-gpu')
-    Edge_options.add_argument('--disable-dev-shm-usage')
-    Edge_options.add_argument('--no-sandbox')
-    Edge_options.add_argument('--ignore-certificate-errors')
-    Edge_options.add_experimental_option('excludeSwitches', ['enable-logging'])
-    Edge_options.add_argument('log-level=3')
-    driver = webdriver.Edge(options=Edge_options)
-    driver.get("http://www.python.org")
-    assert "Python" in driver.title
-    # use webdriver bundled with script
+    driver = useDriver()
+    # use webdriver bundled with script from SteamData
 
     response = requests.get('https://store.steampowered.com/wishlist/profiles/' + ID + '/wishlistdata')
     json_response = response.json()
 
     for game in json_response:
         try:
-            game_parsed = \
-                urllib.parse.quote(
+            game_parsed = urllib.parse.quote(
                     json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&'))
             URL = Eneba_url_start + game_parsed
             driver.get(URL)
-            time.sleep(3)
+            driver.implicitly_wait(3)
             if firstVisit == 0:
                 driver.find_elements("xpath", "//button[contains(@class, 'pr0yIU')]")[1].click()
                 firstVisit += 1
@@ -72,6 +52,7 @@ def ScrapeEneba(ID):
                   "https://help.steampowered.com/en/faqs/view/0CAD-3B4D-B874-A065#wl-whosee")
             WishlistAvailable = 0
             driver.close()
+            break
 
         # convert Steam name into % URL format for Eneba
         if WishlistAvailable == 1:
@@ -89,13 +70,7 @@ def ScrapeEneba(ID):
                     # double check if there is a sale price for the game
                     if accuracy == '0':
                         # if user selected lower accuracy (if result on Eneba exists)
-                        gameList = [
-                            json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&'),
-                            json_response.get(game).get('review_desc'),
-                            json_response.get(game).get('reviews_percent'),
-                            json_response.get(game).get('reviews_total'),
-                            json_response.get(game).get('release_string'),
-                            json_response.get(game).get('type')]
+                        gameList = getGameList(json_response, game)
 
                         # add Steam data to list
                         if not json_response.get(game).get('is_free_game'):
@@ -103,19 +78,7 @@ def ScrapeEneba(ID):
                                 gameList.append(prices[0])
                                 EnebaPrice += float(prices[0].replace("$", ''))
                             except IndexError:
-                                try:
-                                    # if exact match was not found, use Steam result (more accurate)
-                                    price = (str(json_response.get(game).get('subs')[0]))
-                                    idx1 = price.index(sub1)
-                                    idx2 = price.index(sub2)
-                                    res = '$'
-                                    for idx in range(idx1 + len(sub1) + 1, idx2):
-                                        res = res + price[idx]
-                                    gameList.append(res)
-                                    EnebaPrice += float(res.replace("$", ''))
-                                except IndexError:
-                                    # if no steam price is available it has not been released
-                                    gameList.append("N/A")
+                                EnebaPrice += getSteamPrice(json_response, game, sub1, sub2, gameList)
                         else:
                             # if it is a free game, use that result
                             gameList.append('$0.00')
@@ -124,13 +87,7 @@ def ScrapeEneba(ID):
                         # req = requests.get(URL)
                     else:
                         # if user selected higher accuracy (only exact matches on Eneba)
-                        gameList = [
-                            json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&'),
-                            json_response.get(game).get('review_desc'),
-                            json_response.get(game).get('reviews_percent'),
-                            json_response.get(game).get('reviews_total'),
-                            json_response.get(game).get('release_string'),
-                            json_response.get(game).get('type')]
+                        gameList = getGameList(json_response, game)
 
                         # add Steam data to list
                         if not json_response.get(game).get('is_free_game'):
@@ -145,19 +102,7 @@ def ScrapeEneba(ID):
                                 except IndexError:
                                     gameList.append("N/A")
                             else:
-                                try:
-                                    # if it fails use Steam results
-                                    price = (str(json_response.get(game).get('subs')[0]))
-                                    idx1 = price.index(sub1)
-                                    idx2 = price.index(sub2)
-                                    res = '$'
-                                    for idx in range(idx1 + len(sub1) + 1, idx2):
-                                        res = res + price[idx]
-                                    gameList.append(res)
-                                    EnebaPrice += float(res.replace("$", ''))
-                                except IndexError:
-                                    # if no steam price is available it has not been released
-                                    gameList.append("N/A")
+                                EnebaPrice += getSteamPrice(json_response, game, sub1, sub2, gameList)
                         else:
                             # if it is a free game, use that result
                             gameList.append('$0.00')
@@ -166,41 +111,20 @@ def ScrapeEneba(ID):
                         csv_writer.writerow(gameList)
                         # req = requests.get(URL)
                 else:
-                    # only used in extreme scenarios where no game at all is found in Eneba's database
-                    print("Game not found on Eneba: " + json_response.get(game).get('name'))
+                    gameList = getGameList(json_response, game)
+                    EnebaPrice += getSteamPrice(json_response, game, sub1, sub2, gameList)
+                    csv_writer.writerow(gameList)
 
             except NoSuchElementException:
                 # if Selenium fails, notify user that data was not found
                 if WishlistAvailable == 1:
-                    gameList = [
-                        json_response.get(game).get('name').replace('™', '').replace('®', '').replace('&amp;', '&'),
-                        json_response.get(game).get('review_desc'),
-                        json_response.get(game).get('reviews_percent'),
-                        json_response.get(game).get('reviews_total'),
-                        json_response.get(game).get('release_string'),
-                        json_response.get(game).get('type')]
-
+                    gameList = getGameList(json_response, game)
                     # add Steam data to list
                     if not json_response.get(game).get('is_free_game'):
-                        # if exact substring was found in the most relevant result
-                        try:
-                            # if it fails use Steam results
-                            price = (str(json_response.get(game).get('subs')[0]))
-                            idx1 = price.index(sub1)
-                            idx2 = price.index(sub2)
-                            res = '$'
-                            for idx in range(idx1 + len(sub1) + 1, idx2):
-                                res = res + price[idx]
-                            gameList.append(res)
-                            EnebaPrice += float(res.replace("$", ''))
-                        except IndexError:
-                            # if no steam price is available it has not been released
-                            gameList.append("N/A")
+                        EnebaPrice += getSteamPrice(json_response, game, sub1, sub2, gameList)
                     else:
                         # if it is a free game, use that result
                         gameList.append('$0.00')
-                    # print(list)
-                    # print results for testing, replace with below
                     csv_writer.writerow(gameList)
         else:
             break

@@ -83,7 +83,7 @@ def main():
             ScrapeLowest()
 
         Restart = input("Would you like to find wishlist data again? Press 0 to continue or anything else to exit: ")
-        # time.sleep is used instead of driver.implicitlywait(x) because it is more reliable on slower sites...
+        # time.sleep is used instead of driver.implicitlywait(x) because it is more consistent across heavy sites
 
 
 if __name__ == "__main__":
