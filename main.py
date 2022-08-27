@@ -7,11 +7,6 @@ from ScrapeGMG import ScrapeGMG
 
 
 def getID():
-    print("Welcome to the Steam Key Wishlist Calculator.\n\nThis program uses "
-          "Steam's API and Selenium to scrape for the lowest and safest prices\n"
-          "on the games in your Steam wishlist. This program does not obtain any\n"
-          "of your personal information, only the data that is public in your wishlist.\n"
-          "Therefore it requires your profile / wishlist data to be set to public.\n")
     print("Please enter your Steam ID. It can be found using this link: "
           "https://www.businessinsider.com/how-to-find-steam-id")
     steamID = input("Steam ID: ")
@@ -37,6 +32,12 @@ def getOfficial():
 
 def main():
     Restart = '0'
+    print("\nWelcome to the Steam Key Wishlist Calculator.\n\nThis program uses "
+          "Steam's API and Selenium to scrape for the lowest and safest prices\n"
+          "on the games in your Steam wishlist. This program does not obtain any\n"
+          "of your personal information, only the data that is public in your wishlist.\n"
+          "Therefore it requires your profile / wishlist data to be set to public.\n")
+
     while Restart == '0':
 
         isOfficial = getOfficial()
@@ -82,8 +83,8 @@ def main():
         else:
             ScrapeLowest()
 
-        Restart = input("Would you like to find wishlist data again? Press 0 to continue or anything else to exit: ")
-        # time.sleep is used instead of driver.implicitlywait(x) because it is more consistent across heavy sites
+        Restart = input("\nWould you like to find wishlist data again? Press 0 to continue or anything else to exit: ")
+        # time.sleep is used for GMG because it is heavier than the other stores
 
 
 if __name__ == "__main__":

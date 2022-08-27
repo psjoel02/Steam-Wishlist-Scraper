@@ -71,16 +71,16 @@ def ScrapeCD(ID):
                         # add Steam data to list
                         if not json_response.get(game).get('is_free_game'):
                             try:
-                                gameList.append(prices[0])
                                 CDPrice += float(prices[0].replace("$", ''))
+                                gameList.append(prices[0])
                                 # initially try CDKeys results
                             except IndexError:
                                 try:
                                     result = driver.find_elements("xpath", "//div[contains(@itemprop, 'offers')]")
                                     # try second method to find game price
                                     try:
-                                        gameList.append(result[1].text.split("\n", 1)[0])
                                         CDPrice += float(result[1].text.split("\n", 1)[0].replace("$", ''))
+                                        gameList.append(result[1].text.split("\n", 1)[0])
                                     except ValueError:
                                         CDPrice += getSteamPrice(json_response, game, sub1, sub2, gameList)
                                     except IndexError:
@@ -103,16 +103,16 @@ def ScrapeCD(ID):
                             if json_response.get(game).get('name').upper().replace('™', '').replace('®', '').replace(
                                     "&amp;", '&') in exact_name.text and exact_name.text != 'DNE':
                                 try:
-                                    gameList.append(prices[0])
                                     CDPrice += float(prices[0].replace("$", ''))
+                                    gameList.append(prices[0])
                                     # initially try CDKeys results
                                 except IndexError:
                                     # try second method to find game price
                                     try:
                                         result = driver.find_elements("xpath", "//div[contains(@itemprop, 'offers')]")
                                         try:
-                                            gameList.append(result[1].text.split("\n", 1)[0])
                                             CDPrice += float(result[1].text.split("\n", 1)[0].replace("$", ''))
+                                            gameList.append(result[1].text.split("\n", 1)[0])
                                         except IndexError:
                                             gameList.append("N/A")
                                     except NoSuchElementException:

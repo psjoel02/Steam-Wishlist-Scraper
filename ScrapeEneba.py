@@ -75,8 +75,8 @@ def ScrapeEneba(ID):
                         # add Steam data to list
                         if not json_response.get(game).get('is_free_game'):
                             try:
-                                gameList.append(prices[0])
                                 EnebaPrice += float(prices[0].replace("$", ''))
+                                gameList.append(prices[0])
                             except IndexError:
                                 EnebaPrice += getSteamPrice(json_response, game, sub1, sub2, gameList)
                         else:
@@ -96,8 +96,8 @@ def ScrapeEneba(ID):
                                                                                                              '&') \
                                     in exact_name.text and exact_name.text != 'DNE':
                                 try:
-                                    gameList.append(prices[0])
                                     EnebaPrice += float(prices[0].replace("$", ''))
+                                    gameList.append(prices[0])
                                     # initially try Eneba results
                                 except IndexError:
                                     gameList.append("N/A")

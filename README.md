@@ -27,9 +27,7 @@ The Steam Wishlist Scraper scrapes data from:
 
 
 ## Usage
-- Download the repo .zip file.
-- Unzip the repo .zip using your favorite file archive tool.
-- Run the main.exe file inside the /dist/main/ folder.
+- Download and execute main.exe from Releases
 
 
 ## Screenshots

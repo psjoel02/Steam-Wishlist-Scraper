@@ -82,8 +82,8 @@ def ScrapeGMG(ID):
                             try:
                                 prices = result.text
                                 prices = prices.split("\n", 2)[2].replace("$", '')
-                                gameList.append(prices)
                                 GMGPrice += float(prices.replace("$", ''))
+                                gameList.append(prices)
                             except IndexError:
                                 if result.text.__contains__("\n") and result.text != '':
                                     GMGPrice += float(result.text.replace("$", ''))
@@ -109,8 +109,8 @@ def ScrapeGMG(ID):
                                 try:
                                     prices = result.text
                                     prices = prices.split("\n", 2)[2].replace("$", '')
-                                    gameList.append(prices)
                                     GMGPrice += float(prices.replace("$", ''))
+                                    gameList.append(prices)
                                 except IndexError:
                                     if result.text.__contains__("\n") and result.text != '':
                                         GMGPrice += float(result.text.replace("$", ''))

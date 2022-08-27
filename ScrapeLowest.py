@@ -1,17 +1,14 @@
 import csv
 import urllib.parse
 import requests
+from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import WebDriverException
 from SteamData import useDriver, getGameList, getSteamPrice
 
 
 def getID():
-    print("Welcome to the Steam Key Wishlist Calculator.\n\nThis program uses "
-          "Steam's API and Selenium to scrape for the lowest and safest prices\n"
-          "on the games in your Steam wishlist. This program does not obtain any\n"
-          "of your personal information, only the data that is public in your wishlist.\n"
-          "Therefore it requires your profile / wishlist data to be set to public.\n")
-    print("Please enter your Steam ID. It can be found using this link: "
+    print("\nPlease enter your Steam ID. It can be found using this link: "
           "https://www.businessinsider.com/how-to-find-steam-id")
     steamID = input("Steam ID: ")
 
@@ -62,7 +59,7 @@ def ScrapeEneba(Eneba_url_start, EnebaPrice, game_parsed, driver, priceList, num
     try:
         if numTimes == '0':
             driver.find_elements("xpath", "//button[contains(@class, 'pr0yIU')]")[1].click()
-            # dont cause exception due to clicking US conversion button when scraping wishlist
+            # prevent exception due to clicking US conversion button when scraping wishlist
         result = driver.find_element("xpath", "//span[contains(@class,'L5ErLT')]")
         if result is not None:
             prices = result.text.splitlines()
@@ -77,8 +74,6 @@ def ScrapeEneba(Eneba_url_start, EnebaPrice, game_parsed, driver, priceList, num
 
     if EnebaPrice > 0:
         priceList.append(EnebaPrice)
-    else:
-        print("Eneba: Not Found")
 
     return EnebaPrice
 
@@ -104,8 +99,6 @@ def ScrapeFanatical(Fan_url_start, Fan_url_end, FanPrice, game_parsed, driver, p
 
     if FanPrice > 0:
         priceList.append(FanPrice)
-    else:
-        print("Fanatical: Not Found")
 
     return FanPrice
 
@@ -142,11 +135,17 @@ def ScrapeGMG(GMG_url_start, GMG_url_end, game_parsed, driver, GMGPrice, priceLi
 
 
 def ScrapeSteam(Steam_url_start, chars, game_parsed, driver, SteamPrice, priceList):
-    game_name = ''.join(filter(chars.__contains__, game_parsed)).replace('2', ' ')
+    game_name = ''.join(filter(chars.__contains__, game_parsed)).replace('2', '+')
     Steam_URL = Steam_url_start + game_name
-    driver.get(Steam_URL)
-    driver.implicitly_wait(3)
+    try:
+        driver.get(Steam_URL)
+        driver.implicitly_wait(3)
+    except WebDriverException:
+        print("url: " + Steam_URL)
+        print("\nError, connection to Steam failed. Please try again later.")
+        SteamPrice += -1
 
+    # if Steam's server connected correctly
     try:
         result = driver.find_element("xpath", "//div[contains(@class, 'col search_price  responsive_secondrow')]")
         if result is not None:
@@ -161,8 +160,6 @@ def ScrapeSteam(Steam_url_start, chars, game_parsed, driver, SteamPrice, priceLi
 
     if SteamPrice > 0:
         priceList.append(SteamPrice)
-    else:
-        print("Steam: Not Found")
 
     return SteamPrice
 
@@ -204,7 +201,7 @@ def ScrapeLowest():
         game_parsed = urllib.parse.quote(str(game_name).replace('™', '').replace('®', '').replace('&amp;', '&'))
 
         driver = useDriver()
-
+        # driver = webdriver.Edge()
         CDPrice = ScrapeCDKeys(CD_url_start, CD_url_end, CDPrice, game_name, driver, priceList)
         if CDPrice > 0:
             print("\nCDKeys: $" + "{:.2f}".format(CDPrice))
@@ -262,7 +259,7 @@ def ScrapeAll(CD_url_start, CD_url_end, Eneba_url_start, Fan_url_start, Fan_url_
     sub2 = "</div></div></div>"
     WishlistAvailable = 1
     Titles = ['Name', 'Review Summary', 'Review Score', '# of Reviews',
-              'Release Date', 'Type', 'Price', 'Store']
+              'Release Date', 'Type', 'Store', 'Price']
 
     data_file = open('Lowest_Wishlist.csv', 'w', encoding='utf-8')
     csv_writer = csv.writer(data_file)
@@ -273,15 +270,7 @@ def ScrapeAll(CD_url_start, CD_url_end, Eneba_url_start, Fan_url_start, Fan_url_
     driver = useDriver()
     # use webdriver bundled with script from SteamData
 
-    print("Please enter your Steam ID. It can be found using this link: "
-          "https://www.businessinsider.com/how-to-find-steam-id")
-    steamID = input("Steam ID: ")
-
-    while len(steamID) != 17 or not steamID.isdigit():
-        print("\nYour Steam ID must be 17 characters long. It is entirely "
-              "comprised of digits,\nand it can be found using this link: "
-              "https://www.businessinsider.com/how-to-find-steam-id")
-        steamID = input("Steam ID: ")
+    steamID = getID()
 
     response = requests.get('https://store.steampowered.com/wishlist/profiles/' + steamID + '/wishlistdata')
     json_response = response.json()
@@ -306,8 +295,7 @@ def ScrapeAll(CD_url_start, CD_url_end, Eneba_url_start, Fan_url_start, Fan_url_
 
         if WishlistAvailable == 1:
             priceList = []
-            game_parsed = \
-                urllib.parse.quote(
+            game_parsed = urllib.parse.quote(
                     str(json_response.get(game).get('name')).replace('™', '').replace('®', '').replace('&amp;', '&'))
             game_name = str(json_response.get(game).get('name')).replace('™', '').replace('®', '').replace('&amp;', '&')
 
@@ -323,27 +311,28 @@ def ScrapeAll(CD_url_start, CD_url_end, Eneba_url_start, Fan_url_start, Fan_url_
             lowest = min(priceList)
 
             if float(lowest) == float(CDPrice):
-                gameList.append(CDPrice)
+                gameList.append("CDKeys")
                 TotalPrice += float(str(CDPrice).replace("$", ''))
 
             elif float(lowest) == float(EnebaPrice):
-                gameList.append(EnebaPrice)
+                gameList.append("Eneba")
                 TotalPrice += float(str(EnebaPrice).replace("$", ''))
 
             elif float(lowest) == float(FanPrice):
-                gameList.append(FanPrice)
+                gameList.append("Fanatical")
                 TotalPrice += float(str(FanPrice).replace("$", ''))
 
             elif float(lowest) == float(GMGPrice):
-                gameList.append(GMGPrice)
+                gameList.append("Green Man Gaming")
                 TotalPrice += float(str(GMGPrice).replace("$", ''))
 
             elif float(lowest) == float(SteamPrice):
-                gameList.append(SteamPrice)
+                gameList.append("Steam")
                 TotalPrice += float(str(SteamPrice).replace("$", ''))
 
             else:
                 print("\nError, no lowest value found.")
+                gameList.append("N/A")
                 gameList.append("N/A")
 
             csv_writer.writerow(gameList)

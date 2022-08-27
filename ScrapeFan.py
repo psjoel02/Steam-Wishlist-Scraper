@@ -86,8 +86,8 @@ def ScrapeFan(ID):
                         # add Steam data to list
                         if not json_response.get(game).get('is_free_game'):
                             try:
-                                gameList.append(prices)
                                 FanPrice += float(prices.replace("$", ''))
+                                gameList.append(prices)
                             except ValueError:
                                 FanPrice += getSteamPrice(json_response, game, sub1, sub2, gameList)
                         else:
@@ -106,8 +106,8 @@ def ScrapeFan(ID):
                             try:
                                 if json_response.get(game).get('name').upper() in exact_name and exact_name != 'DNE':
                                     try:
-                                        gameList.append(prices)
                                         FanPrice += float(prices.replace("$", ''))
+                                        gameList.append(prices)
                                         # initially try Fanatical results
                                     except IndexError:
                                         gameList.append("N/A")
